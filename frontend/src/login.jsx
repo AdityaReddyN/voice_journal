@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import "./login.css";
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, goRegister }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,28 +29,33 @@ export default function Login({ onLogin }) {
   };
 
   return (
-    <div className="login-container">
+    <>
       <h1 className="page-title">Voice Journal</h1>
+      <div className="login-container">
+        <h2>Login</h2>
 
-      <h2>Login</h2>
+        {error && <p className="login-error">{error}</p>}
 
-      {error && <p className="login-error">{error}</p>}
+        <input
+          type="email"
+          placeholder="Email address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-      <input
-        type="email"
-        placeholder="Email address"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <button onClick={handleLogin}>Login</button>
 
-      <button onClick={handleLogin}>Login</button>
-    </div>
+        <button className="link-btn" onClick={goRegister}>
+          Need to Register?
+        </button>
+      </div>
+    </>
   );
 }

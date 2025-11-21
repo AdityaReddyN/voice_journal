@@ -1,65 +1,69 @@
 const express = require("express");
-const multer = require("multer");
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const cors = require("cors");
-const { v4: uuidv4 } = require("uuid");
-const redis = require("./queue");
-const path = require("path");
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-// store uploaded audio
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + path.extname(file.originalname)),
+// MongoDB Connection
+mongoose.connect("mongodb://localhost:27017/voicejournal", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
 });
 
-const upload = multer({ storage });
+// User Schema
+const UserSchema = new mongoose.Schema({
+  email: String,
+  password: String,
+});
 
-// ------------------------------
-//  POST /api/upload
-// ------------------------------
-app.post("/api/upload", upload.single("audio"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No audio file provided" });
+const User = mongoose.model("User", UserSchema);
+
+// REGISTER API
+app.post("/api/register", async (req, res) => {
+  const { email, password } = req.body;
+
+  // Check if user exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    return res.status(400).json({ message: "User already exists" });
   }
 
-  const jobId = uuidv4();
-  const audioPath = req.file.path;
+  // Hash password
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-  // send task to Redis queue
-  await redis.rPush("stt_jobs", JSON.stringify({ jobId, audioPath }));
+  // Save new user
+  await User.create({ email, password: hashedPassword });
 
-  // store initial status
-  await redis.hSet(`job:${jobId}`, {
-    status: "queued",
-  });
-
-  res.json({ jobId });
+  res.json({ message: "User registered successfully" });
 });
 
-// ------------------------------
-//  GET /api/status/:jobId
-// ------------------------------
-app.get("/api/status/:jobId", async (req, res) => {
-  const jobId = req.params.jobId;
+// LOGIN API
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
 
-  const status = await redis.hGet(`job:${jobId}`, "status");
-  res.json({ status });
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(400).json({ message: "Invalid email" });
+  }
+
+  // Compare password
+  const isMatch = await bcrypt.compare(password, user.password);
+  if (!isMatch) {
+    return res.status(400).json({ message: "Invalid password" });
+  }
+
+  // Create token
+  const token = jwt.sign({ id: user._id }, "MY_SECRET_KEY", { expiresIn: "1d" });
+
+  res.json({ token });
 });
 
-// ------------------------------
-//  GET /api/result/:jobId
-// ------------------------------
-app.get("/api/result/:jobId", async (req, res) => {
-  const jobId = req.params.jobId;
-
-  const transcript = await redis.hGet(`job:${jobId}`, "transcript");
-  res.json({ transcript });
+// Start server
+app.listen(3000, () => {
+  console.log("Server running on port 3000");
 });
-
-// ------------------------------
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Backend running on port  http://localhost:${PORT}`));

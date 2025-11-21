@@ -1,4 +1,4 @@
-/* Full page wrapper */
+/* Full dark background */
 body {
   margin: 0;
   padding: 0;
@@ -10,31 +10,37 @@ body {
   justify-content: center;
   align-items: center;
 
-  /* Darker static background */
-  background: #0b0f19;
+  background: #0a0a0a; /* Full dark background */
+  color: #f5f5f5; /* default light text */
 }
 
-/* Page Title */
+/* Highly visible title */
 .page-title {
-  font-size: 40px;
+  font-size: 42px;
   font-weight: 800;
   margin-bottom: 25px;
 
-  background: linear-gradient(90deg, #5b8bf7, #9f7aea);
+  /* Bright neon gradient */
+  background: linear-gradient(90deg, #00eaff, #7c3aed, #00eaff);
   -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  -webkit-text-stroke: 0.6px rgba(0,0,0,0.25);
   color: transparent;
 
+  text-shadow: 0 0 15px rgba(0, 238, 255, 0.4);
   letter-spacing: 1px;
 }
 
-/* Login Card - darker & solid */
+/* Dark card */
 .login-container {
   width: 360px;
   padding: 32px 26px;
-  background: #141a28;  /* Darker solid card */
+  background: #121212; /* solid dark card */
   border-radius: 12px;
 
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.7);
   text-align: center;
 }
 
@@ -42,13 +48,13 @@ body {
 .login-container h2 {
   font-size: 26px;
   font-weight: 600;
-  color: #e5e7eb;   /* light grey */
+  color: #e5e5e5;
   margin-bottom: 18px;
 }
 
-/* Error text */
+/* Error */
 .login-error {
-  color: #fb4b4b;
+  color: #ff5555;
   font-size: 14px;
   margin-bottom: 12px;
 }
@@ -60,11 +66,11 @@ body {
   margin: 10px 0;
   font-size: 16px;
 
-  background: #1e2536; 
-  border: 1px solid #2a3247;
+  background: #1d1d1d;
+  border: 1px solid #2c2c2c;
   border-radius: 8px;
 
-  color: #f8fafc; /* Fully visible text */
+  color: #fafafa;
 
   outline: none;
   transition: 0.2s;
@@ -72,11 +78,11 @@ body {
 
 /* Input focus effect */
 .login-container input:focus {
-  border-color: #6d28d9;
-  box-shadow: 0 0 6px rgba(109, 40, 217, 0.6);
+  border-color: #00eaff;
+  box-shadow: 0 0 8px rgba(0, 234, 255, 0.5);
 }
 
-/* Login button */
+/* Button */
 .login-container button {
   width: 100%;
   padding: 14px 12px;
@@ -90,13 +96,13 @@ body {
   cursor: pointer;
 
   color: white;
-  background: linear-gradient(90deg, #4f46e5, #7c3aed);
 
+  background: linear-gradient(90deg, #00c6ff, #7c3aed);
   transition: 0.25s;
 }
 
-/* Button hover */
+/* Hover animation */
 .login-container button:hover {
   transform: scale(1.03);
-  box-shadow: 0 0 12px rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 12px rgba(0, 198, 255, 0.4);
 }
