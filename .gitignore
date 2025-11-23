@@ -1,3 +1,4 @@
 backend-python/venv/
 frontend/node_modules/
 backend-node/node_modules
+backend-node/.env
