@@ -31,10 +31,10 @@ export default function Upload() {
       });
 
       const data = await res.json();
-      setUploading(false);
-
-      if (data.jobId) {
-        setStatus(`Upload complete! Job ID: ${data.jobId}`);
+      
+      if (data.jobID) {
+        setUploading(true);
+        setStatus(`Upload complete! Job ID: ${data.jobID}`);
       } else {
         setStatus("Upload failed.");
       }
