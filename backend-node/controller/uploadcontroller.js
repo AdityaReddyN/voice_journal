@@ -9,7 +9,7 @@ export const handleAudioUpload=async (req,res)=>{
 
         const jobID = uuid();
         const filePath = req.file.path;
-        
+    
         await redis.lpush(
             "voicejnl_queue",
             JSON.stringify({jobID,filePath})
