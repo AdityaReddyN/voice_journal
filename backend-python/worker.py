@@ -2,7 +2,8 @@ import os
 import requests
 from celery_app import celery as celery_app
 
-STT_API_URL = "http://127.0.0.1:8000/transcribe"
+STT_API_URL = "http://localhost:8000/transcribe"
+
 
 def convert_to_wsl(path_str: str) -> str:
     """Convert Windows NodeJS path to WSL path."""
@@ -10,7 +11,6 @@ def convert_to_wsl(path_str: str) -> str:
         filename = path_str.replace("\\", "/").split("/")[-1]
         return f"/mnt/c/Users/adity/Documents/GitHub/voice_journal/backend-node/uploads/{filename}"
 
-    # C:\Users\adity\...
     if ":" in path_str and "\\" in path_str:
         drive = path_str[0].lower()
         cleaned = path_str.replace("\\", "/").replace(":", "")
@@ -31,23 +31,51 @@ def process_audio(self, job_id, file_path):
         return {"status": "error", "job_id": job_id, "message": "File not found"}
 
     try:
+        # Read full file bytes
         with open(wsl_path, "rb") as f:
-            files = {
-                "audio": (
-                    os.path.basename(wsl_path),
-                    f,
-                    "audio/mpeg"
-                )
-            }
-            data = {"job_id": job_id}
+            file_bytes = f.read()
 
-            resp = requests.post(STT_API_URL, files=files, data=data, timeout=120)
-            resp.raise_for_status()
+        # Properly format multipart/form-data request
+        # The key for files must match the parameter name in FastAPI
+        files = {
+            "audio": (
+                os.path.basename(wsl_path),
+                file_bytes,
+                "audio/mpeg"
+            )
+        }
 
-            return resp.json()
+        # Form data goes in 'data' parameter
+        data = {
+            "job_id": job_id
+        }
+
+        print(f"[CELERY] Sending request to {STT_API_URL}")
+        
+        resp = requests.post(
+            STT_API_URL,
+            files=files,
+            data=data,
+            timeout=120,
+        )
+
+        print(f"[CELERY] Response status: {resp.status_code}")
+        
+        # Check response before raising
+        if resp.status_code != 200:
+            print(f"[CELERY] Error response: {resp.text}")
+            
+        resp.raise_for_status()
+        result = resp.json()
+        print(f"[CELERY] Success: {result}")
+        return result
 
     except requests.exceptions.RequestException as e:
-        return {"status": "error", "job_id": job_id, "message": f"FastAPI request failed: {e}"}
+        error_msg = f"FastAPI request failed: {e}"
+        print(f"[CELERY] {error_msg}")
+        return {"status": "error", "job_id": job_id, "message": error_msg}
 
     except Exception as e:
-        return {"status": "error", "job_id": job_id, "message": str(e)}
+        error_msg = f"Unexpected error: {str(e)}"
+        print(f"[CELERY] {error_msg}")
+        return {"status": "error", "job_id": job_id, "message": error_msg}
