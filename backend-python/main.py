@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from huggingface_hub import InferenceClient
+from groq import Groq
 import os
 import uuid
 import shutil
@@ -8,16 +8,15 @@ import traceback
 from dotenv import load_dotenv
 load_dotenv()
 
-HF_TOKEN = os.getenv("HF_TOKEN")
+# Get API key from: https://console.groq.com/keys
+# Completely FREE - Whisper Large v3
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TMP_DIR = "/tmp"
 
-# Initialize Hugging Face Inference Client with provider specified
-client = InferenceClient(
-    provider="hf-inference",
-    api_key=HF_TOKEN
-)
+# Initialize Groq client
+client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-app = FastAPI(title="Voice Journal STT")
+app = FastAPI(title="Voice Journal STT Gateway")
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,45 +31,51 @@ async def transcribe(
     job_id: str = Form(...),
     audio: UploadFile = File(...),
 ):
-    if not HF_TOKEN:
-        raise HTTPException(status_code=500, detail="HF_TOKEN not set")
+    """
+    FastAPI gateway that proxies to external Groq Whisper API.
+    Receives audio from Celery worker and forwards to Groq.
+    """
+    if not client:
+        raise HTTPException(
+            status_code=500,
+            detail="GROQ_API_KEY not set. Get FREE API key at https://console.groq.com/keys"
+        )
 
-    # Save uploaded audio to temp file
     temp_filename = f"{uuid.uuid4()}-{audio.filename}"
     temp_path = f"{TMP_DIR}/{temp_filename}"
 
     try:
-        # Save the uploaded file
+        # Save uploaded file
         with open(temp_path, "wb") as tmp:
             shutil.copyfileobj(audio.file, tmp)
 
-        print(f"[FASTAPI] Processing: {temp_path} ({os.path.getsize(temp_path)} bytes)")
+        file_size = os.path.getsize(temp_path)
+        print(f"[FASTAPI] Job {job_id}: Proxying {file_size} bytes to external Groq Whisper API")
 
-        # Use InferenceClient for ASR with hf-inference provider
-        result = client.automatic_speech_recognition(
-            temp_path,
-            model="openai/whisper-small"
-        )
-
-        print(f"[FASTAPI] Raw result: {result}")
+        # Call external Whisper Large v3 via Groq
+        with open(temp_path, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                file=(temp_filename, audio_file.read()),
+                model="whisper-large-v3",
+                response_format="json",
+                language="en",  # Optional: omit for auto-detect
+                temperature=0.0
+            )
 
         # Clean up temp file
         os.remove(temp_path)
 
         # Extract transcript
-        if isinstance(result, dict):
-            transcript = result.get("text", "")
-        elif isinstance(result, str):
-            transcript = result
-        else:
-            transcript = str(result)
+        transcript = transcription.text.strip()
 
-        print(f"[FASTAPI] ✓ Success (job {job_id}): '{transcript[:80]}'...")
+        print(f"[FASTAPI] ✓ Job {job_id} completed via external Groq API: '{transcript[:80]}'...")
 
         return {
             "status": "success",
             "job_id": job_id,
-            "transcript": transcript.strip()
+            "transcript": transcript,
+            "provider": "groq",
+            "model": "whisper-large-v3"
         }
 
     except Exception as e:
@@ -80,27 +85,14 @@ async def transcribe(
                 os.remove(temp_path)
             except:
                 pass
-        
+
         error_msg = str(e)
-        print(f"[FASTAPI] ✗ Error: {error_msg}")
+        print(f"[FASTAPI] ✗ Job {job_id} failed: {error_msg}")
         traceback.print_exc()
-        
-        # Handle specific errors
-        if "503" in error_msg or "loading" in error_msg.lower():
-            raise HTTPException(
-                status_code=503,
-                detail="Model is loading, please retry in 20 seconds"
-            )
-        
-        if "401" in error_msg or "unauthorized" in error_msg.lower():
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid Hugging Face token. Please check your HF_TOKEN."
-            )
-        
+
         raise HTTPException(
             status_code=500,
-            detail=f"Transcription failed: {error_msg}"
+            detail=f"External Whisper API failed: {error_msg}"
         )
 
 
@@ -108,13 +100,19 @@ async def transcribe(
 async def root():
     return {
         "status": "ok",
-        "service": "Voice Journal STT",
-        "model": "openai/whisper-small",
-        "provider": "hf-inference",
-        "hf_token_set": bool(HF_TOKEN)
+        "service": "Voice Journal STT Gateway",
+        "description": "Proxies audio transcription to external Groq Whisper API",
+        "provider": "Groq",
+        "model": "whisper-large-v3",
+        "external": True,
+        "free": True,
+        "api_key_set": bool(client)
     }
 
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy" if client else "api_key_missing",
+        "groq_configured": bool(client)
+    }
