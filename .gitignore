@@ -1,6 +1,6 @@
 backend-python/venv/
+backend-python/.env
 frontend/node_modules/
 backend-node/node_modules
 backend-node/.env
 backend-node/uploads
-backend-python/.env
