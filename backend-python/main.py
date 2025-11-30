@@ -5,6 +5,7 @@ import os
 import uuid
 import shutil
 from dotenv import load_dotenv
+import traceback
 
 load_dotenv()
 
@@ -28,28 +29,38 @@ async def transcribe(
     job_id: str = Form(...),
     audio: UploadFile = File(...),
 ):
-    """Receives audio from Celery and forwards it to the Groq Whisper API."""
-
+    print(f"📥 Received transcription request for job: {job_id}")
+    print(f"📁 Audio filename: {audio.filename}")
+    
     if not client:
+        print("❌ Missing GROQ_API_KEY")
         raise HTTPException(500, "Missing GROQ_API_KEY")
 
-    # Save temporary audio file
     temp_path = f"{TMP_DIR}/{uuid.uuid4()}-{audio.filename}"
+    print(f"💾 Saving to temp path: {temp_path}")
 
     try:
+        # Save uploaded file
         with open(temp_path, "wb") as f:
             shutil.copyfileobj(audio.file, f)
+        
+        print(f"✅ File saved, size: {os.path.getsize(temp_path)} bytes")
 
-        # Send to Groq Whisper API
+        # Read and send to Groq
+        print("🎤 Sending to Groq API...")
         with open(temp_path, "rb") as f:
             result = client.audio.transcriptions.create(
                 file=(audio.filename, f.read()),
-                model="whisper-large-v3",
+                model="whisper-large-v3-turbo",  # Use turbo for faster processing
                 response_format="json",
                 temperature=0.0
             )
 
+        print(f"✅ Transcription successful: {result.text[:50]}...")
+        
+        # Clean up
         os.remove(temp_path)
+        print(f"🗑️  Temp file removed")
 
         return {
             "status": "success",
@@ -59,6 +70,9 @@ async def transcribe(
         }
 
     except Exception as e:
+        print(f"❌ Error during transcription: {str(e)}")
+        print(f"Full traceback: {traceback.format_exc()}")
+        
         if os.path.exists(temp_path):
             os.remove(temp_path)
 
@@ -73,7 +87,7 @@ async def root():
     return {
         "status": "ok",
         "provider": "Groq",
-        "model": "whisper-large-v3",
+        "model": "whisper-large-v3-turbo",
         "api_key_set": bool(client)
     }
 

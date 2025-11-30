@@ -1,63 +1,72 @@
-import os
 import requests
-from celery_app import celery as celery_app
+import redis
+import os
+from celery import Celery
 
-# FastAPI STT gateway (can be overridden in env)
-STT_API_URL = os.getenv("STT_API_URL", "http://localhost:8000/transcribe")
+# Change from DB 2 to DB 0 to match Node.js backend
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+FASTAPI_URL = os.getenv("FASTAPI_URL", "http://localhost:8000/transcribe")
+
+r = redis.Redis.from_url(REDIS_URL)
+
+celery = Celery(
+    "worker",
+    broker=os.getenv("BROKER_URL", "redis://localhost:6379/0"),
+    backend=os.getenv("RESULT_BACKEND", "redis://localhost:6379/1")
+)
+
+def update_status(task_id, **kwargs):
+    for k, v in kwargs.items():
+        r.hset(task_id, k, v)
 
 
-def convert_to_wsl(path_str: str) -> str:
-    """Convert a Windows path from Node to WSL format (local dev only)."""
-    path = path_str.replace("\\", "/")
+@celery.task(bind=True)
+def process_audio(self, job_id, file_path):
+    update_status(job_id, status="received", progress=5)
+    
+    print(f"📁 Processing file: {file_path}")
+    
+    # Check if file exists
+    if not os.path.exists(file_path):
+        error_msg = f"File not found: {file_path}"
+        print(f"❌ {error_msg}")
+        update_status(job_id, status="failed", error=error_msg)
+        raise FileNotFoundError(error_msg)
 
-    if path.startswith("uploads/"):
-        filename = path.split("/")[-1]
-        return f"/mnt/c/Users/adity/Documents/GitHub/voice_journal/backend-node/uploads/{filename}"
+    # Prepare file for FastAPI STT request
+    update_status(job_id, status="sending_to_stt", progress=25)
 
-    if ":" in path:
-        drive = path[0].lower()
-        cleaned = path.replace(":", "")
-        return f"/mnt/{drive}{cleaned}"
-
-    return path
-
-
-@celery_app.task(name="worker.process_audio")
-def process_audio(job_id, file_path):
-    """Background STT task: reads audio file and sends to FastAPI gateway."""
-
-    print(f"[CELERY] Job {job_id} → {file_path}")
-
-    wsl_path = convert_to_wsl(file_path)
-    print(f"[CELERY] Resolved path → {wsl_path}")
-
-    if not os.path.isfile(wsl_path):
-        return {"status": "error", "job_id": job_id, "message": "File not found"}
+    # Extract just the filename for the upload
+    filename = os.path.basename(file_path)
+    print(f"📤 Sending {filename} to FastAPI...")
 
     try:
-        with open(wsl_path, "rb") as f:
-            file_bytes = f.read()
-
-        files = {
-            "audio": (os.path.basename(wsl_path), file_bytes, "audio/mpeg")
-        }
-
-        data = {"job_id": job_id}
-
-        resp = requests.post(STT_API_URL, files=files, data=data, timeout=120)
-
-        if resp.status_code != 200:
-            return {
-                "status": "error",
-                "job_id": job_id,
-                "message": f"STT API {resp.status_code}: {resp.text[:300]}"
-            }
-
-        return resp.json()
+        with open(file_path, "rb") as f:
+            files = {"audio": (filename, f, "audio/mpeg")}
+            data = {"job_id": job_id}
+            
+            res = requests.post(FASTAPI_URL, data=data, files=files, timeout=90)
+            res.raise_for_status()
 
     except Exception as e:
-        return {
-            "status": "error",
-            "job_id": job_id,
-            "message": f"STT request failed: {str(e)}"
-        }
+        print(f"❌ Error: {str(e)}")
+        update_status(job_id, status="failed", error=str(e))
+        raise e
+
+    stt_result = res.json()
+    transcript = stt_result.get("transcript")
+    
+    print(f"✅ Transcription complete: {transcript[:50]}...")
+
+    update_status(job_id, status="saving", progress=90)
+
+    # Save final transcript to redis
+    update_status(
+        job_id,
+        status="completed",
+        progress=100,
+        transcript=transcript,
+        provider=stt_result["provider"]
+    )
+
+    return transcript

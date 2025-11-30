@@ -1,4 +1,3 @@
-
 import express from "express";
 import { checkStatus } from "../controller/statuscontroller.js";
 

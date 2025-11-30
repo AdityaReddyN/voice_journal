@@ -29,9 +29,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename); 
 app.use(express.static(path.join(__dirname, "../frontend")));
 
+
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+});
+
 app.use("/api/auth", authRoutes);
-app.use("/api", uploadRoutes);
 app.use("/api/status", statusRoutes);
+app.use("/api", uploadRoutes);
 
 
 app.listen(PORT, () => {

@@ -104,31 +104,46 @@ export default function Upload() {
     }
   };
 
-  const pollStatus = (jobID) => {
-    const timer = setInterval(async () => {
-      try {
-        const res = await fetch(`http://localhost:3000/api/status/${jobID}`);
-        const data = await res.json();
+const pollStatus = (jobID) => {
+  const timer = setInterval(async () => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/status/${jobID}`);
 
-        if (data.status === "pending") return;
-
-        if (data.status === "success") {
-          setTranscript(data.transcript);
-          setStatus("Transcription complete.");
-          clearInterval(timer);
-        }
-
-        if (data.status === "error") {
-          setError(data.message);
-          setStatus("Error processing audio.");
-          clearInterval(timer);
-        }
-      } catch {
-        clearInterval(timer);
-        setStatus("Error checking status.");
+      if (res.status === 404) {
+        // Redis has not stored the key yet → keep polling
+        return;
       }
-    }, 2000);
-  };
+
+      const data = await res.json();
+
+      if (data.status === "received" || 
+          data.status === "sending_to_stt" || 
+          data.status === "saving") {
+        setStatus("Processing...");
+        return;
+      }
+
+      if (data.status === "completed") {
+        // SUCCESS!
+        setTranscript(data.transcript);
+        setStatus("Transcription complete.");
+        clearInterval(timer);
+        return;
+      }
+
+      if (data.status === "failed") {
+        setError(data.error);
+        setStatus("Error processing audio.");
+        clearInterval(timer);
+        return;
+      }
+
+    } catch (err) {
+      console.log("Polling error", err);
+    }
+  }, 2000);
+};
+
 
   return (
     <div className="upload-container">
