@@ -4,16 +4,13 @@ from groq import Groq
 import os
 import uuid
 import shutil
-import traceback
 from dotenv import load_dotenv
+
 load_dotenv()
 
-# Get API key from: https://console.groq.com/keys
-# Completely FREE - Whisper Large v3
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 TMP_DIR = "/tmp"
 
-# Initialize Groq client
 client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 app = FastAPI(title="Voice Journal STT Gateway")
@@ -31,68 +28,43 @@ async def transcribe(
     job_id: str = Form(...),
     audio: UploadFile = File(...),
 ):
-    """
-    FastAPI gateway that proxies to external Groq Whisper API.
-    Receives audio from Celery worker and forwards to Groq.
-    """
-    if not client:
-        raise HTTPException(
-            status_code=500,
-            detail="GROQ_API_KEY not set. Get FREE API key at https://console.groq.com/keys"
-        )
+    """Receives audio from Celery and forwards it to the Groq Whisper API."""
 
-    temp_filename = f"{uuid.uuid4()}-{audio.filename}"
-    temp_path = f"{TMP_DIR}/{temp_filename}"
+    if not client:
+        raise HTTPException(500, "Missing GROQ_API_KEY")
+
+    # Save temporary audio file
+    temp_path = f"{TMP_DIR}/{uuid.uuid4()}-{audio.filename}"
 
     try:
-        # Save uploaded file
-        with open(temp_path, "wb") as tmp:
-            shutil.copyfileobj(audio.file, tmp)
+        with open(temp_path, "wb") as f:
+            shutil.copyfileobj(audio.file, f)
 
-        file_size = os.path.getsize(temp_path)
-        print(f"[FASTAPI] Job {job_id}: Proxying {file_size} bytes to external Groq Whisper API")
-
-        # Call external Whisper Large v3 via Groq
-        with open(temp_path, "rb") as audio_file:
-            transcription = client.audio.transcriptions.create(
-                file=(temp_filename, audio_file.read()),
+        # Send to Groq Whisper API
+        with open(temp_path, "rb") as f:
+            result = client.audio.transcriptions.create(
+                file=(audio.filename, f.read()),
                 model="whisper-large-v3",
                 response_format="json",
-                language="en",  # Optional: omit for auto-detect
                 temperature=0.0
             )
 
-        # Clean up temp file
         os.remove(temp_path)
-
-        # Extract transcript
-        transcript = transcription.text.strip()
-
-        print(f"[FASTAPI] ✓ Job {job_id} completed via external Groq API: '{transcript[:80]}'...")
 
         return {
             "status": "success",
             "job_id": job_id,
-            "transcript": transcript,
-            "provider": "groq",
-            "model": "whisper-large-v3"
+            "transcript": result.text.strip(),
+            "provider": "groq"
         }
 
     except Exception as e:
-        # Clean up on error
         if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except:
-                pass
-
-        error_msg = str(e)
-        print(f"[FASTAPI] ✗ Job {job_id} failed: {error_msg}")
-        traceback.print_exc()
+            os.remove(temp_path)
 
         raise HTTPException(
-            status_code=500,
-            detail=f"External Whisper API failed: {error_msg}"
+            500,
+            f"Groq STT API failed: {str(e)}"
         )
 
 
@@ -100,19 +72,12 @@ async def transcribe(
 async def root():
     return {
         "status": "ok",
-        "service": "Voice Journal STT Gateway",
-        "description": "Proxies audio transcription to external Groq Whisper API",
         "provider": "Groq",
         "model": "whisper-large-v3",
-        "external": True,
-        "free": True,
         "api_key_set": bool(client)
     }
 
 
 @app.get("/health")
 async def health():
-    return {
-        "status": "healthy" if client else "api_key_missing",
-        "groq_configured": bool(client)
-    }
+    return {"healthy": bool(client)}

@@ -6,6 +6,7 @@ import cors from "cors";
 import {fileURLToPath} from "url";
 import path from "path";
 import uploadRoutes from "./routes/uploadroutes.js";
+import statusRoutes from "./routes/statusroutes.js";
 
 
 
@@ -30,6 +31,7 @@ app.use(express.static(path.join(__dirname, "../frontend")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api", uploadRoutes);
+app.use("/api/status", statusRoutes);
 
 
 app.listen(PORT, () => {

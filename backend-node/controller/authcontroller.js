@@ -21,28 +21,36 @@ export const register = async(req,res) =>{
     }
 };
 
-export const login = async (req,res) =>{
-    const{email,password} = req.body;
-    try{
-        const checker = await user.findOne({email});
-        if(!checker) return res.status(400).json({message:"Invalid Email or Password"});
+export const login = async (req, res) => {
+    const { email, password } = req.body;
 
-        const match =await bcrypt.compare(password,checker.password);
-        if(!match) res.status(400).json({message:"Invalid Email or Password"});
-        
-        const token = jwt.sign({ id: checker._id }, process.env.JWT_SECRET,{expiresIn:"3d"});
+    try {
+        const checker = await user.findOne({ email });
+        if (!checker)
+            return res.status(400).json({ message: "Invalid Email or Password" });
 
-        res.json({
+        const match = await bcrypt.compare(password, checker.password);
+        if (!match)
+            return res.status(400).json({ message: "Invalid Email or Password" });
+
+        const token = jwt.sign(
+            { id: checker._id },
+            process.env.JWT_SECRET,
+            { expiresIn: "3d" }
+        );
+
+        return res.json({
             message: "Login successful",
             token,
             user: {
                 id: checker._id,
                 name: checker.name,
-                email: checker.email
-            }
+                email: checker.email,
+            },
         });
 
-    }catch(error){
-        res.status(500).json({message:"Error",error});
+    } catch (error) {
+        return res.status(500).json({ message: "Error", error });
     }
 };
+
