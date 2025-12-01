@@ -1,33 +1,115 @@
 .upload-container {
-  max-width: 450px;
+  width: 550px;
   margin: 70px auto;
-  padding: 25px;
+  padding: 40px;
   text-align: center;
-  font-family: "Inter", sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(220, 120, 95, 0.1);
 }
 
 .upload-title {
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 25px;
-  color: #222;
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 35px;
+  color: #2d2d2d;
+  background: linear-gradient(135deg, #d4734f 0%, #c85a3a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
 }
 
+/* Recording Section */
+.record-section {
+  margin-bottom: 20px;
+}
+
+.record-btn {
+  width: 100%;
+  padding: 14px 32px;
+  border: none;
+  background: linear-gradient(135deg, #e67e50 0%, #d4734f 100%);
+  color: white;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(230, 126, 80, 0.25);
+  letter-spacing: 0.3px;
+}
+
+.record-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(230, 126, 80, 0.35);
+  background: linear-gradient(135deg, #d4734f 0%, #c85a3a 100%);
+}
+
+.record-btn.stop {
+  background: linear-gradient(135deg, #d94d32 0%, #c43d25 100%);
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.record-btn:disabled {
+  background: #d4d4d4;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Audio Preview */
+.audio-preview {
+  margin: 25px 0;
+  padding: 20px;
+  background: linear-gradient(135deg, #fef5f1 0%, #fceee8 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(212, 115, 79, 0.15);
+}
+
+.audio-preview audio {
+  width: 100%;
+  border-radius: 8px;
+  outline: none;
+}
+
+/* Upload Box */
 .upload-box {
   width: 100%;
-  height: 160px;
-  border: 2px dashed #6c63ff;
-  border-radius: 12px;
+  height: 170px;
+  border: 2px dashed #d4734f;
+  border-radius: 14px;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  background: #f7f7ff;
-  transition: 0.3s ease;
+  background: linear-gradient(135deg, #fef9f7 0%, #fef5f1 100%);
+  transition: all 0.3s ease;
+  margin: 25px 0;
 }
 
 .upload-box:hover {
-  background: #efefff;
+  background: linear-gradient(135deg, #fef5f1 0%, #fceee8 100%);
+  border-color: #c85a3a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(212, 115, 79, 0.12);
+}
+
+.upload-box.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .file-input {
@@ -36,45 +118,176 @@
 
 .upload-text p {
   font-size: 17px;
-  color: #333;
-  margin: 0;
+  color: #2d2d2d;
+  margin: 0 0 6px 0;
+  font-weight: 600;
 }
 
 .upload-text span {
   font-size: 13px;
-  color: #888;
+  color: #8b7355;
+  font-weight: 500;
 }
 
 .file-name {
-  margin-top: 12px;
+  margin: 15px 0;
   font-size: 14px;
-  color: #444;
+  color: #2d2d2d;
+  font-weight: 600;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #fef5f1 0%, #fceee8 100%);
+  border-radius: 10px;
+  border-left: 4px solid #d4734f;
 }
 
+/* Progress Bar */
+.progress-container {
+  width: 100%;
+  height: 10px;
+  background: #f5e6df;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 25px 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #e67e50 0%, #d4734f 50%, #c85a3a 100%);
+  transition: width 0.3s ease;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(230, 126, 80, 0.3);
+}
+
+/* Buttons */
 .upload-btn {
   margin-top: 25px;
-  padding: 12px 20px;
+  padding: 15px 28px;
   border: none;
-  background: #6c63ff;
+  background: linear-gradient(135deg, #d4734f 0%, #c85a3a 100%);
   color: white;
   font-size: 16px;
-  border-radius: 8px;
+  font-weight: 600;
+  border-radius: 12px;
   cursor: pointer;
   width: 100%;
-  transition: 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 16px rgba(212, 115, 79, 0.25);
+  letter-spacing: 0.3px;
 }
 
-.upload-btn:hover {
-  background: #584ee0;
+.upload-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c85a3a 0%, #b44d2d 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 115, 79, 0.35);
 }
 
 .upload-btn:disabled {
-  background: #aaa;
+  background: linear-gradient(135deg, #d4d4d4 0%, #c4c4c4 100%);
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
+.reset-btn {
+  margin-top: 18px;
+  padding: 11px 24px;
+  border: 2px solid #d4734f;
+  background: white;
+  color: #d4734f;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.reset-btn:hover {
+  background: #d4734f;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 115, 79, 0.25);
+}
+
+/* Status Messages */
 .status-text {
-  margin-top: 15px;
+  margin-top: 20px;
   font-size: 15px;
-  color: #444;
+  color: #2d2d2d;
+  font-weight: 600;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #fef5f1 0%, #fceee8 100%);
+  border-radius: 10px;
+  border-left: 4px solid #d4734f;
+}
+
+.error-text {
+  margin-top: 20px;
+  font-size: 15px;
+  color: #c43d25;
+  font-weight: 600;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #fef5f5 0%, #fee8e7 100%);
+  border-radius: 10px;
+  border-left: 4px solid #d94d32;
+}
+
+/* Transcript Box */
+.transcript-box {
+  margin-top: 35px;
+  padding: 30px;
+  background: linear-gradient(135deg, #fefaf8 0%, #fef5f1 100%);
+  border-radius: 14px;
+  text-align: left;
+  box-shadow: 0 4px 20px rgba(212, 115, 79, 0.08);
+  border: 1px solid rgba(212, 115, 79, 0.12);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.transcript-box h3 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 18px 0;
+  color: #2d2d2d;
+  background: linear-gradient(135deg, #d4734f 0%, #c85a3a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.transcript-box p {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #4a4a4a;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .upload-container {
+    margin: 20px;
+    padding: 20px;
+  }
+
+  .upload-title {
+    font-size: 24px;
+  }
+
+  .record-btn,
+  .upload-btn {
+    font-size: 14px;
+    padding: 12px 20px;
+  }
 }

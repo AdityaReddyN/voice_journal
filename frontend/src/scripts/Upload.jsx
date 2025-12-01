@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import "./styles/Upload.css";
 
 export default function Upload() {
@@ -8,12 +8,23 @@ export default function Upload() {
   const [jobId, setJobId] = useState("");
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState("");
+  const [progress, setProgress] = useState(0);
 
   // Recording refs
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedURL, setRecordedURL] = useState("");
+  const pollingTimerRef = useRef(null);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingTimerRef.current) {
+        clearInterval(pollingTimerRef.current);
+      }
+    };
+  }, []);
 
   // ================================
   // File Upload
@@ -23,6 +34,8 @@ export default function Upload() {
     setStatus("");
     setTranscript("");
     setRecordedURL("");
+    setError("");
+    setProgress(0);
   };
 
   // ================================
@@ -48,20 +61,26 @@ export default function Upload() {
         });
 
         setFile(recordedFile);
+        
+        // Stop all tracks to release microphone
+        stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
-      setStatus("Recording...");
+      setStatus("🎙️ Recording...");
     } catch (err) {
-      setStatus("Mic access denied");
+      setStatus("❌ Mic access denied");
+      setError("Please allow microphone access to record audio.");
     }
   };
 
   const stopRecording = () => {
-    mediaRecorderRef.current.stop();
-    setIsRecording(false);
-    setStatus("Recording stopped. Ready to upload.");
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setStatus("✅ Recording stopped. Ready to upload.");
+    }
   };
 
   // ================================
@@ -78,7 +97,9 @@ export default function Upload() {
 
     try {
       setUploading(true);
-      setStatus("Uploading...");
+      setStatus("📤 Uploading...");
+      setError("");
+      setProgress(10);
 
       const res = await fetch("http://localhost:3000/api/upload", {
         method: "POST",
@@ -91,89 +112,129 @@ export default function Upload() {
       if (!data.jobID) {
         setStatus("Upload failed.");
         setUploading(false);
+        setProgress(0);
         return;
       }
 
       setJobId(data.jobID);
-      setStatus("Processing...");
+      setStatus("⚙️ Processing...");
+      setProgress(25);
       pollStatus(data.jobID);
 
     } catch (err) {
       setUploading(false);
       setStatus("Upload failed.");
+      setError(err.message);
+      setProgress(0);
     }
   };
 
-const pollStatus = (jobID) => {
-  const timer = setInterval(async () => {
-    try {
-      const res = await fetch(`http://localhost:3000/api/status/${jobID}`);
-
-      if (res.status === 404) {
-        // Redis has not stored the key yet → keep polling
-        return;
-      }
-
-      const data = await res.json();
-
-      if (data.status === "received" || 
-          data.status === "sending_to_stt" || 
-          data.status === "saving") {
-        setStatus("Processing...");
-        return;
-      }
-
-      if (data.status === "completed") {
-        // SUCCESS!
-        setTranscript(data.transcript);
-        setStatus("Transcription complete.");
-        clearInterval(timer);
-        return;
-      }
-
-      if (data.status === "failed") {
-        setError(data.error);
-        setStatus("Error processing audio.");
-        clearInterval(timer);
-        return;
-      }
-
-    } catch (err) {
-      console.log("Polling error", err);
+  const pollStatus = (jobID) => {
+    // Clear any existing timer
+    if (pollingTimerRef.current) {
+      clearInterval(pollingTimerRef.current);
     }
-  }, 2000);
-};
 
+    pollingTimerRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`http://localhost:3000/api/status/${jobID}`);
+
+        if (res.status === 404) {
+          return;
+        }
+
+        const data = await res.json();
+
+        // Update progress based on status
+        if (data.status === "received") {
+          setStatus("📥 Received...");
+          setProgress(40);
+          return;
+        }
+
+        if (data.status === "sending_to_stt") {
+          setStatus("🎯 Transcribing...");
+          setProgress(60);
+          return;
+        }
+
+        if (data.status === "saving") {
+          setStatus("💾 Saving...");
+          setProgress(80);
+          return;
+        }
+
+        if (data.status === "completed") {
+          setTranscript(data.transcript);
+          setStatus("✅ Transcription complete!");
+          setProgress(100);
+          setUploading(false);
+          clearInterval(pollingTimerRef.current);
+          return;
+        }
+
+        if (data.status === "failed") {
+          setError(data.error || "Unknown error occurred");
+          setStatus("❌ Error processing audio");
+          setProgress(0);
+          setUploading(false);
+          clearInterval(pollingTimerRef.current);
+          return;
+        }
+
+      } catch (err) {
+        console.log("Polling error", err);
+      }
+    }, 2000);
+  };
+
+  const resetForm = () => {
+    setFile(null);
+    setStatus("");
+    setTranscript("");
+    setError("");
+    setRecordedURL("");
+    setProgress(0);
+    setJobId("");
+    setUploading(false);
+  };
 
   return (
     <div className="upload-container">
-      <h1 className="upload-title">Voice Journal Upload</h1>
+      <h1 className="upload-title"> Voice Journal</h1>
 
       {/* Recording section */}
       <div className="record-section">
         {!isRecording ? (
-          <button className="upload-btn" onClick={startRecording}>
+          <button 
+            className="record-btn" 
+            onClick={startRecording}
+            disabled={uploading}
+          >
             🎤 Start Recording
           </button>
         ) : (
-          <button className="upload-btn stop" onClick={stopRecording}>
-            ⏹ Stop Recording
+          <button className="record-btn stop" onClick={stopRecording}>
+             Stop Recording
           </button>
         )}
       </div>
 
       {/* Playback recorded audio */}
       {recordedURL && (
-        <audio controls src={recordedURL} style={{ marginTop: "10px" }} />
+        <div className="audio-preview">
+          <audio controls src={recordedURL} />
+        </div>
       )}
 
       {/* File upload box */}
-      <label className="upload-box">
+      <label className={`upload-box ${uploading ? 'disabled' : ''}`}>
         <input
           type="file"
           accept="audio/*"
           onChange={handleFileChange}
           className="file-input"
+          disabled={uploading}
         />
 
         <div className="upload-text">
@@ -184,22 +245,32 @@ const pollStatus = (jobID) => {
 
       {file && <p className="file-name">Selected: {file.name}</p>}
 
+      {/* Progress bar */}
+      {progress > 0 && progress < 100 && (
+        <div className="progress-container">
+          <div className="progress-bar" style={{ width: `${progress}%` }}></div>
+        </div>
+      )}
+
       <button
         className="upload-btn"
         onClick={handleUpload}
-        disabled={uploading}
+        disabled={uploading || !file}
       >
-        {uploading ? "Uploading..." : "Upload"}
+        {uploading ? "Processing..." : "Upload & Transcribe"}
       </button>
 
       {status && <p className="status-text">{status}</p>}
-      {error && <p className="status-text error">{error}</p>}
+      {error && <p className="error-text">⚠️ {error}</p>}
 
       {/* Transcript */}
       {transcript && (
         <div className="transcript-box">
-          <h3>Transcript</h3>
+          <h3>📝 Transcript</h3>
           <p>{transcript}</p>
+          <button className="reset-btn" onClick={resetForm}>
+            Upload Another
+          </button>
         </div>
       )}
     </div>
