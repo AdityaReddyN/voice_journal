@@ -25,7 +25,7 @@ export default function Login() {
         }
 
         try {
-            const res = await axios.post("http://localhost:3000/api/auth/login", {
+            const res = await axios.post("http://127.0.0.1:3000/api/auth/login", {
                 email: Email,
                 password: Password,
             });
@@ -44,7 +44,7 @@ export default function Login() {
         <>
             <form onSubmit={HandleLogin} className="login-form">
                 <h1 id="main-title">Voice Journal</h1>
-                <div className="login-container">
+                <div className="login-container">  
                     <h3>Login Page</h3>
 
                     <input

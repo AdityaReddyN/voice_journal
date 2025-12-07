@@ -101,7 +101,7 @@ export default function Upload() {
       setError("");
       setProgress(10);
 
-      const res = await fetch("http://localhost:3000/api/upload", {
+      const res = await fetch("http://127.0.0.1:3000/api/upload", {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -137,7 +137,7 @@ export default function Upload() {
 
     pollingTimerRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/status/${jobID}`);
+        const res = await fetch(`http://127.0.0.1:3000/api/status/${jobID}`);
 
         if (res.status === 404) {
           return;

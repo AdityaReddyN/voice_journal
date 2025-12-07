@@ -2,17 +2,17 @@ import requests
 import redis
 import os
 from celery import Celery
-
 # Change from DB 2 to DB 0 to match Node.js backend
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-FASTAPI_URL = os.getenv("FASTAPI_URL", "http://localhost:8000/transcribe")
+#REDIS_URL = os.getenv("REDIS_URL", "redis://192.168.1.5:6379/0")
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+FASTAPI_URL = os.getenv("FASTAPI_URL", "http://127.0.0.1:8000/transcribe")
 
 r = redis.Redis.from_url(REDIS_URL)
 
 celery = Celery(
     "worker",
-    broker=os.getenv("BROKER_URL", "redis://localhost:6379/0"),
-    backend=os.getenv("RESULT_BACKEND", "redis://localhost:6379/1")
+    broker=os.getenv("BROKER_URL", "redis://127.0.0.1:6379/0"),
+    backend=os.getenv("RESULT_BACKEND", "redis://127.0.0.1:6379/1")
 )
 
 def update_status(task_id, **kwargs):

@@ -27,7 +27,7 @@ export default function Register({ onBackToLogin }){
         }
 
         try{
-            const res = await axios.post("http://localhost:3000/api/auth/register", {
+            const res = await axios.post("http://127.0.0.1:3000/api/auth/register", {
                 name: Username,
                 email: Email,
                 password: Password,

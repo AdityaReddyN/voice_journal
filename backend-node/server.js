@@ -21,7 +21,7 @@ const app = express();
 //app.use(cors());
 app.use(express.json());
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ["http://127.0.0.1:5173","http://localhost:5173"],
     credentials: true,
 }));
 
@@ -41,5 +41,5 @@ app.use("/api", uploadRoutes);
 
 
 app.listen(PORT, () => {
-  console.log(`🎬 Server running on http://localhost:${PORT}`);
+  console.log(`🎬 Server running on http://127.0.0.1:${PORT}`);
 });
