@@ -30,25 +30,25 @@ async def transcribe(
     job_id: str = Form(...),
     audio: UploadFile = File(...),
 ):
-    print(f"📥 Received transcription request for job: {job_id}")
-    print(f"📁 Audio filename: {audio.filename}")
+    print(f"Received transcription request for job: {job_id}")
+    print(f"Audio filename: {audio.filename}")
     
     if not client:
-        print("❌ Missing GROQ_API_KEY")
+        print("Missing GROQ_API_KEY")
         raise HTTPException(500, "Missing GROQ_API_KEY")
 
     temp_path = f"{TMP_DIR}/{uuid.uuid4()}-{audio.filename}"
-    print(f"💾 Saving to temp path: {temp_path}")
+    print(f"Saving to temp path: {temp_path}")
 
     try:
         # Save uploaded file
         with open(temp_path, "wb") as f:
             shutil.copyfileobj(audio.file, f)
         
-        print(f"✅ File saved, size: {os.path.getsize(temp_path)} bytes")
+        print(f"File saved, size: {os.path.getsize(temp_path)} bytes")
 
         # Read and send to Groq
-        print("🎤 Sending to Groq API...")
+        print("Sending to Groq API...")
         with open(temp_path, "rb") as f:
             result = client.audio.transcriptions.create(
                 file=(audio.filename, f.read()),
@@ -57,11 +57,11 @@ async def transcribe(
                 temperature=0.0
             )
 
-        print(f"✅ Transcription successful: {result.text[:50]}...")
+        print(f"Transcription successful: {result.text[:50]}...")
         
         # Clean up
         os.remove(temp_path)
-        print(f"🗑️  Temp file removed")
+        print(f"Temp file removed")
 
         return {
             "status": "success",
@@ -71,7 +71,7 @@ async def transcribe(
         }
 
     except Exception as e:
-        print(f"❌ Error during transcription: {str(e)}")
+        print(f"Error during transcription: {str(e)}")
         print(f"Full traceback: {traceback.format_exc()}")
         
         if os.path.exists(temp_path):

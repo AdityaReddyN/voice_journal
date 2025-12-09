@@ -2,15 +2,14 @@ import { redis } from "../utils/redis.js";
 
 export const checkStatus = async (req, res) => {
     const jobId = req.params.id;
-    console.log(`🔍 Checking status for job: ${jobId}`);
+    console.log(`Checking status for job: ${jobId}`);
 
     try {
-        // ioredis uses lowercase: hgetall (not hGetAll)
         const data = await redis.hgetall(jobId);
-        console.log(`📦 Redis data for ${jobId}:`, data);
+        console.log(`Redis data for ${jobId}:`, data);
 
         if (!data || Object.keys(data).length === 0) {
-            console.log(`⚠️ No data found for job: ${jobId}`);
+            console.log(`No data found for job: ${jobId}`);
             return res.status(404).json({ status: "not_found" });
         }
 
@@ -24,7 +23,7 @@ export const checkStatus = async (req, res) => {
         });
 
     } catch (err) {
-        console.error("❌ Redis error:", err);
+        console.error("Redis error:", err);
         return res.status(500).json({ status: "error", message: err.message });
     }
 };

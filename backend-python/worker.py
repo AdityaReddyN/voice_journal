@@ -24,12 +24,12 @@ def update_status(task_id, **kwargs):
 def process_audio(self, job_id, file_path):
     update_status(job_id, status="received", progress=5)
     
-    print(f"📁 Processing file: {file_path}")
+    print(f"Processing file: {file_path}")
     
     # Check if file exists
     if not os.path.exists(file_path):
         error_msg = f"File not found: {file_path}"
-        print(f"❌ {error_msg}")
+        print(f"{error_msg}")
         update_status(job_id, status="failed", error=error_msg)
         raise FileNotFoundError(error_msg)
 
@@ -38,7 +38,7 @@ def process_audio(self, job_id, file_path):
 
     # Extract just the filename for the upload
     filename = os.path.basename(file_path)
-    print(f"📤 Sending {filename} to FastAPI...")
+    print(f"Sending {filename} to FastAPI...")
 
     try:
         with open(file_path, "rb") as f:
@@ -49,7 +49,7 @@ def process_audio(self, job_id, file_path):
             res.raise_for_status()
 
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        print(f"Error: {str(e)}")
         update_status(job_id, status="failed", error=str(e))
         raise e
 

@@ -83,11 +83,11 @@ export const handleAudioUpload = async (req, res) => {
         // Push to Celery queue  
         await redis.lpush('celery', JSON.stringify(celeryMessage));
         
-        console.log(`✅ Job ${jobID} queued for Celery with task ID: ${taskId}`);
+        console.log(`Job ${jobID} queued for Celery with task ID: ${taskId}`);
         
         res.json({ message: "Uploaded file and added to queue", jobID });
     } catch (error) {
-        console.error("❌ Upload error:", error);
+        console.error("Upload error:", error);
         return res.status(500).json({ 
             message: "error in uploading", 
             error: error.message 
